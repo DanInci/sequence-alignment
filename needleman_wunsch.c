@@ -3,7 +3,7 @@
 
 #define MATCH 1
 #define MISMATCH -1
-#define GAP -2
+#define GAP -1
 
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #define FIT_SCORE(a, b) (a == b ? MATCH : MISMATCH)
@@ -64,7 +64,7 @@ int **needleman_wunsch_score(char *seqA, char *seqB, int lenA, int lenB) {
 void needleman_wunsch_align(char *seqA, char *seqB, int lenA, int lenB) {
     int **score = needleman_wunsch_score(seqA, seqB, lenA, lenB);
     int i, j, k;
-    char *alignedA, *alignedB;
+    char *alignedA, *alignedB, *alignedHelper;
 
     // afiseaza matricea de scor 
     for (i = 0; i <= lenA; i++) {
@@ -80,6 +80,8 @@ void needleman_wunsch_align(char *seqA, char *seqB, int lenA, int lenB) {
     alignedA[k] = '\0';
     alignedB = (char *) calloc((k + 1), sizeof(char *));
     alignedB[k] = '\0';
+    alignedHelper = (char *) calloc((k + 1), sizeof(char *));
+    alignedHelper[k] = '\0';
     k--;
 
     i=lenA;
@@ -88,17 +90,20 @@ void needleman_wunsch_align(char *seqA, char *seqB, int lenA, int lenB) {
     while (i > 0 && j > 0) {
         if (score[i][j] == score[i-1][j-1] + FIT_SCORE(seqA[i-1], seqB[j-1])) {
             alignedA[k] = seqA[i-1];
+            alignedHelper[k] = FIT_SCORE(seqA[i-1], seqB[j-1]) == MATCH ? '|' : ' ';
             alignedB[k] = seqB[j-1];
             i--;
             j--;
         }
         else if (score[i][j] == score[i-1][j] + GAP) {
             alignedA[k] = seqA[i-1];
+            alignedHelper[k] = ' ';
             alignedB[k] = '-';
             i--;
         }
         else {
             alignedA[k] = '-';
+            alignedHelper[k] = ' ';
             alignedB[k] = seqB[j-1];
             j--;
 
@@ -109,11 +114,13 @@ void needleman_wunsch_align(char *seqA, char *seqB, int lenA, int lenB) {
     while (i > 0 || j > 0) {
         if (i == 0) {
             alignedA[k] = '-';
+            alignedHelper[k] = ' ';
             alignedB[k] = seqB[j-1];
             j--;
         }
         else if (j == 0) {
             alignedA[k] = seqA[i-1];
+            alignedHelper[k] = ' ';
             alignedB[k] = '-';
             i--;
         }
@@ -121,8 +128,8 @@ void needleman_wunsch_align(char *seqA, char *seqB, int lenA, int lenB) {
     }
     
     // afisare secvente aliniate
-    printf("\nInitial:\n%s\n%s\n\n", alignedA+k+1, alignedB+k+1);
-    printf("Aliniere:\n%s\n%s\n\n", alignedA+k+1, alignedB+k+1);
+    printf("\nInitial:\n%s\n%s\n\n", seqA, seqB);
+    printf("Aliniere:\n%s\n%s\n%s\n\n", alignedA+k+1, alignedHelper+k+1, alignedB+k+1);
 
     // dealocare memorie
     for (i = 0; i <= lenA; i++) {
@@ -131,6 +138,7 @@ void needleman_wunsch_align(char *seqA, char *seqB, int lenA, int lenB) {
     free(score);
 
     free(alignedA);
+    free(alignedHelper);
     free(alignedB);
 }
 
