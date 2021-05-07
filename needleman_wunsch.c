@@ -168,6 +168,7 @@ void read_sequence(FILE *in, char **descriptor, char **seq, int *len) {
 }
 
 int main(int argc, char *argv[]) {
+    char output_filename[100];
     char *seqA_descriptor, *seqA, *seqB_descriptor, *seqB;
     struct Alignment *alignment;
     FILE *input, *output;
@@ -188,25 +189,41 @@ int main(int argc, char *argv[]) {
     read_sequence(input, &seqB_descriptor, &seqB, &lenB);
     alignment = needleman_wunsch_align(seqA, seqB, lenA, lenB);
 
-    // print score matrix
-    for (i = 0; i <= lenA; i++) {
-        for (j = 0; j <= lenB; j++) {
-            printf("%3d ", alignment->score[i][j]);
-        }
-        printf("\n");
+    strcpy(output_filename, argv[1]);
+    strcat(output_filename, ".aligned");
+    output = fopen(output_filename, "w");
+    if (output == NULL) {
+        fprintf(stderr, "Failed to open output file %s\n", output_filename);
+        exit(EXIT_FAILURE);
     }
 
+    fputs(seqA_descriptor, output);
+    fputc('\n', output);
+    fputs(alignment->alignedA, output);
+    fputc('\n', output);
+
+    fputs(seqB_descriptor, output);
+    fputc('\n', output);
+    fputs(alignment->alignedB, output);
+    fputc('\n', output);
+
+    // print score matrix
+    // for (i = 0; i <= lenA; i++) {
+    //     for (j = 0; j <= lenB; j++) {
+    //         printf("%3d ", alignment->score[i][j]);
+    //     }
+    //     printf("\n");
+    // }
+
     // print sequences alignment
-    printf("\nInitial:\n%s\n%s\n\n", seqA, seqB);
-    printf("Aliniere:\n%s\n%s\n\n", alignment->alignedA, alignment->alignedB);
+    // printf("\nInitial:\n%s\n%s\n\n", seqA, seqB);
+    // printf("Aliniere:\n%s\n%s\n\n", alignment->alignedA, alignment->alignedB);
 
     // deallocate memory
     for (i = 0; i <= lenA; i++) {
         free(alignment->score[i]);
     }
     free(alignment->score);
-    // free(alignment->alignedA);
-    // free(alignment->alignedB);
     free(alignment);
     free(seqA_descriptor);
     free(seqB_descriptor);
@@ -215,7 +232,7 @@ int main(int argc, char *argv[]) {
 
 
     fclose(input);
-    // fclose(output);
+    fclose(output);
 
     exit(EXIT_SUCCESS);
 }
