@@ -187,6 +187,7 @@ int main(int argc, char *argv[]) {
 
     read_sequence(input, &seqA_descriptor, &seqA, &lenA);
     read_sequence(input, &seqB_descriptor, &seqB, &lenB);
+
     alignment = needleman_wunsch_align(seqA, seqB, lenA, lenB);
 
     strcpy(output_filename, argv[1]);
