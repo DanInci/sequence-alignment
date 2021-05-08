@@ -142,17 +142,17 @@ void read_sequence(FILE *in, char **descriptor, char **seq, int *len) {
         
         *len = 0;
         while ((read = getline(&line, &size, in)) != -1 && memchr(line, '>', sizeof(char)) == NULL) {
-            line[read-1] = '\0';
-            
+            line[read-2] = '\0';
+
             if (*len == 0) {
-                *seq = (char *) calloc(size, sizeof(char));
+                *seq = (char *) calloc(size-2, sizeof(char));
                 strcpy(*seq, line);
-                *len = read-1;
+                *len = read-2;
             }
             else {
                 *seq = (char *) realloc(*seq, (*len + read) * sizeof(char));
                 strcat(*seq, line);
-                *len += read-1;
+                *len += read-2;
             }
         }
 
