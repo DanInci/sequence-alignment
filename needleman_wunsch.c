@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
     char *seqA_descriptor, *seqA, *seqB_descriptor, *seqB;
     struct Alignment *alignment;
     FILE *input, *output;
-    int i, j, lenA, lenB;
+    int lenA, lenB;
 
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <in.seq>\n", argv[0]);
@@ -208,20 +208,20 @@ int main(int argc, char *argv[]) {
     fputs(alignment->alignedB, output);
     fputc('\n', output);
 
-    // print score matrix
-    // for (i = 0; i <= lenA; i++) {
-    //     for (j = 0; j <= lenB; j++) {
+    // // print score matrix
+    // for (int i = 0; i <= lenA; i++) {
+    //     for (int j = 0; j <= lenB; j++) {
     //         printf("%3d ", alignment->score[i][j]);
     //     }
     //     printf("\n");
     // }
 
-    // print sequences alignment
+    // // print sequences alignment
     // printf("\nInitial:\n%s\n%s\n\n", seqA, seqB);
     // printf("Aliniere:\n%s\n%s\n\n", alignment->alignedA, alignment->alignedB);
 
     // deallocate memory
-    for (i = 0; i <= lenA; i++) {
+    for (int i = 0; i <= lenA; i++) {
         free(alignment->score[i]);
     }
     free(alignment->score);
