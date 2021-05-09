@@ -2,13 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CUDA_BLOCK_SIZE 1024
+#include "kernel_functions.h"
 
 #define MATCH 1
 #define MISMATCH -1
 #define GAP -1
 
-#define MAX(a,b) (((a)>(b))?(a):(b))
 #define FIT_SCORE(a, b) (a == b ? MATCH : MISMATCH)
 
 struct Alignment {
@@ -22,49 +21,14 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 {
    if (code != cudaSuccess) 
    {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      fprintf(stderr,"\nGPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
       if (abort) exit(code);
    }
 }
 
-__global__
-void cuda_compute_slice(char *seqA, char *seqB, int *score, int col_dim, int slice, int start, int end) {
-    int index = start + blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (index <= end) {
-        char a = seqA[index-1];
-        char b = seqB[slice-index-1];
-
-        /*
-        * MAX OF (FIT (MATCH OR MISMATCH), INSERT, DELETE) SCORES
-        */
-        int match_score = score[(col_dim * (index-1)) + slice-index-1] + FIT_SCORE(a, b);
-        int insert_score = score[(col_dim * index) + slice-index-1] + GAP;
-        int delete_score = score[(col_dim * (index-1)) + slice-index] + GAP;
-
-        int max = MAX(match_score, insert_score);
-        max = MAX(max, delete_score);
-
-        score[(col_dim * index) + slice - index] = max;
-    }
-}
-
-__global__
-void cuda_init_score(int *score, int row_dim, int col_dim) {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (index < row_dim) {
-        score[index] = index * GAP;
-    }
-
-    if (index < col_dim) {
-        score[index * col_dim] = index * GAP;
-    }
-}
-
 int **needleman_wunsch_score(char *seqA, char *seqB, int lenA, int lenB) {
     char *cudaSeqA, *cudaSeqB;
-    int **score, *cuda_score, cuda_grid_size;
+    int **score, *cuda_score;
 
     int row_dim = lenA + 1;
     int col_dim = lenB + 1;
@@ -80,31 +44,11 @@ int **needleman_wunsch_score(char *seqA, char *seqB, int lenA, int lenB) {
     gpuErrchk(cudaMemcpy(cudaSeqB, seqB, lenB * sizeof(char), cudaMemcpyHostToDevice));
 
     printf("DONE\n");
-    printf("Initializing the score matrix ... ");
+    printf("Calculating score matrix ... ");
 
-    // initialize first row & first column
-    // all gaps => row index * GAP score
-    cuda_grid_size = MAX(row_dim, col_dim) / CUDA_BLOCK_SIZE + 1;
-    cuda_init_score<<<cuda_grid_size, CUDA_BLOCK_SIZE>>>(cuda_score, row_dim, col_dim);
-
-    // wait for GPU
+    cuda_compute_score<<<1, 1>>>(cudaSeqA, cudaSeqB, cuda_score, row_dim, col_dim);
+    gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
-
-    printf("DONE\n");
-    printf("Computing the score matrix ... ");
-
-    // anti-diagonal traversal, except first row and column
-    for (int slice = 2; slice < row_dim + col_dim - 1; slice++) {
-        int z1 = slice <= col_dim ? 1 : slice - col_dim + 1;
-        int z2 = slice <= row_dim ? 1 : slice - row_dim + 1;
-        int slice_size = slice - z2 - z1 + 1;
-
-        cuda_grid_size = slice_size / CUDA_BLOCK_SIZE + 1;
-        cuda_compute_slice<<<cuda_grid_size, CUDA_BLOCK_SIZE>>>(cudaSeqA, cudaSeqB, cuda_score, col_dim, slice, z1, slice-z2);
-
-        // wait for GPU to finish computing the anti-diagonal
-        gpuErrchk(cudaDeviceSynchronize());
-    }
 
     printf("DONE\n");
     printf("CUDA cleanup ... ");
