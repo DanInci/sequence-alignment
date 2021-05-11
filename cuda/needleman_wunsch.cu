@@ -6,7 +6,7 @@
 
 #define MATCH 1
 #define MISMATCH -1
-#define GAP -1
+#define GAP -2
 
 #define FIT_SCORE(a, b) (a == b ? MATCH : MISMATCH)
 

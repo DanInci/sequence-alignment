@@ -6,7 +6,7 @@
 #define THREADS 8
 #define MATCH 1
 #define MISMATCH -1
-#define GAP -1
+#define GAP -2
 
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #define FIT_SCORE(a, b) (a == b ? MATCH : MISMATCH)
@@ -32,46 +32,48 @@ int compute_score_at_index(int **M, char a, char b, int i, int j) {
 }
 
 int **needleman_wunsch_score(char *seqA, char *seqB, int lenA, int lenB) {
-    int thread_id;
-    int i, j, **score, slice, z1, z2;
+    int thread_id, i, **score, slice, z1, z2;
     char a, b;
+
+    int row_dim = lenA + 1;
+    int col_dim = lenB + 1;
     
     // allocate memory for score matrix
-    score = (int **) calloc((lenA + 1), sizeof(int *));
-    for (i = 0; i <= lenA; i++) {
-        score[i] = (int *) calloc((lenB + 1), sizeof(int));
+    score = (int **) calloc(row_dim, sizeof(int *));
+    for (i = 0; i < row_dim; i++) {
+        score[i] = (int *) calloc(col_dim, sizeof(int));
     }
 
-    // initlialize first column
+    printf("Calculating score matrix ... ");
+
+    // initlialize first row & first column
     // all gaps => column index * GAP score
     #pragma omp parallel for private(i)
-    for (i = 0; i <= lenA; i++) {
-        score[i][0] = i * GAP;
-    }
-
-    // initialize first row
-    // all gaps => row index * GAP score
-    #pragma omp parallel for private(i)
-    for (j = 0; j <= lenB; j++) {
-        score[0][j] = j * GAP;
-    }
-
-    int m = lenA + 1;
-    int n = lenB + 1;
-
-    // anti-diagonal traversal, except first row and column
-    for (slice = 2; slice < m + n - 1; slice++) {
-        z1 = slice <= n ? 1 : slice - n + 1;
-        z2 = slice <= m ? 1 : slice - m + 1;
-
-        // we want each anti-diagonal to be computed in parallel
-        #pragma omp parallel for shared(slice, z1, z2, seqA, seqB) private(thread_id, j, a, b)
-        for (j = slice - z2; j >= z1; j--) {
-            a = seqA[j-1];
-            b = seqB[slice-j-1];
-            score[j][slice-j] = compute_score_at_index(score, a, b, j, slice-j);
+    for (i = 0; i < MAX(row_dim, col_dim); i++) {
+        if (i < row_dim) {
+            score[i][0] = i * GAP;
+        }
+        
+        if (i < col_dim) {
+            score[0][i] = i * GAP;
         }
     }
+
+    // anti-diagonal traversal, except first row and column
+    for (slice = 2; slice < row_dim + col_dim - 1; slice++) {
+        z1 = slice <= col_dim ? 1 : slice - col_dim + 1;
+        z2 = slice <= row_dim ? 1 : slice - row_dim + 1;
+
+        // we want each anti-diagonal to be computed in parallel
+        #pragma omp parallel for shared(slice, z1, z2, seqA, seqB) private(thread_id, i, a, b)
+        for (i = slice - z2; i >= z1; i--) {
+            a = seqA[i-1];
+            b = seqB[slice-i-1];
+            score[i][slice-i] = compute_score_at_index(score, a, b, i, slice-i);
+        }
+    }
+
+    printf("DONE\n");
 
     return score;
 }
@@ -94,6 +96,8 @@ struct Alignment *needleman_wunsch_align(char *seqA, char *seqB, int lenA, int l
 
     i=lenA;
     j=lenB;
+
+    printf("Constructing alignment ... ");
 
     while (i > 0 && j > 0) {
         if (alignment->score[i][j] == alignment->score[i-1][j-1] + FIT_SCORE(seqA[i-1], seqB[j-1])) {
@@ -132,6 +136,8 @@ struct Alignment *needleman_wunsch_align(char *seqA, char *seqB, int lenA, int l
 
     alignment->alignedA = alignedA+k+1;
     alignment->alignedB = alignedB+k+1;
+
+    printf("DONE\n");
 
     return alignment;
 }
@@ -199,7 +205,7 @@ int main(int argc, char *argv[]) {
     alignment = needleman_wunsch_align(seqA, seqB, lenA, lenB);
 
     strcpy(output_filename, argv[1]);
-    strcat(output_filename, ".aligned");
+    strcat(output_filename, ".omp.aligned");
     output = fopen(output_filename, "w");
     if (output == NULL) {
         fprintf(stderr, "Failed to open output file %s\n", output_filename);
