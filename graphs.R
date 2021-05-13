@@ -1,0 +1,22 @@
+seq1 <- c(0.026, 0.164, 0.460, 0.939, 1.565, 2.504, 3.785, 5.268, 8.329, 10.798, 12.192)
+seq2 <- c(0.025, 0.322, 0.964, 1.871, 3.025, 4.455, 6.518, 8.552, 11.243, 14.875, 16.378)
+omp2 <- c(0.015, 0.105, 0.256, 0.587, 0.975, 1.466, 2.001, 3.149, 4.595, 6.372, 7.885)
+omp4 <- c(0.018, 0.073, 0.228, 0.382, 0.795, 1.149, 1.559, 2.278, 3.352, 4.519, 5.487)
+omp8 <- c(0.016, 0.070, 0.150, 0.297, 0.652, 0.866, 1.255, 3.117, 3.648, 3.734, 5.406)
+cuda <- c(0.348, 0.773, 1.144, 1.582, 2.144, 2.698, 3.335, 4.016, 4.832, 5.592, 6.145)
+sizes <- c(1000, 3000, 5000, 7000, 9000, 11000, 13000, 15000, 17000, 19000, 20000)
+
+plot(sizes, seq1, main="Sequential vs OpenMP", xlab="Size of sequences (nucleotides)", ylab="Duration of processing (s)", col="black")
+lines(sizes, seq1, col="black", lwd=2, pch=19 , type="b")
+lines(sizes, omp2, col="burlywood", lwd=2, pch=18 , type="b")
+lines(sizes, omp4, col="cadetblue", lwd=2, pch=17 , type="b")
+lines(sizes, omp8, col="coral", lwd=2, pch=16 , type="b")
+abline(h=c(2, 4, 6, 8, 10, 12), col="grey", lty=2)
+legend("topleft", legend=c("Sequential", "2 threads", "4 threads", "8 threads"), col=c("black", "burlywood", "cadetblue", "coral"), text.col=c("black", "burlywood", "cadetblue", "coral"),  pch = c(19,18,17,16), box.lty=0)
+
+
+plot(sizes, seq2, main="Sequential vs Cuda", xlab="Size of sequence (nucleotides)", ylab="Duration of processing (s)", col="black")
+lines(sizes, seq2, col="black", lwd=2, pch=19 , type="b")
+abline(h=c(2, 4, 6, 8, 10, 12, 14, 16), col="grey", lty=2)
+lines(sizes, cuda, col="chartreuse3", lwd=2, pch=18 , type="b")
+legend("topleft", legend=c("Sequential", "CUDA"), col=c("black", "chartreuse3"), text.col=c("black", "chartreuse3"),  pch = c(19,18), box.lty=0)
