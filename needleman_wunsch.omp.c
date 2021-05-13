@@ -3,7 +3,6 @@
 #include <string.h>
 #include <omp.h>
 
-#define THREADS 8
 #define MATCH 1
 #define MISMATCH -1
 #define GAP -2
