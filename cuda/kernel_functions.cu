@@ -54,11 +54,11 @@ void cuda_compute_score(char *seqA, char *seqB, int *score, int row_dim, int col
 
     // initialize first row & first column
     // all gaps => row index * GAP score
-    // cuda_grid_size = MAX(row_dim, col_dim) / CUDA_BLOCK_SIZE + 1;
-    // cuda_init_score<<<cuda_grid_size, CUDA_BLOCK_SIZE>>>(score, row_dim, col_dim);
+    cuda_grid_size = MAX(row_dim, col_dim) / CUDA_BLOCK_SIZE + 1;
+    cuda_init_score<<<cuda_grid_size, CUDA_BLOCK_SIZE>>>(score, row_dim, col_dim);
 
     // wait for GPU
-    // cudaDeviceSynchronize();
+    cudaDeviceSynchronize();
 
     // anti-diagonal traversal, except first row and column
     for (int slice = 2; slice < row_dim + col_dim - 1; slice++) {
